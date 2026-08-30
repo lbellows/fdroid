@@ -1,0 +1,8 @@
+# Build products of `fdroid update` and the Pages assembly.
+/fdroid/repo/
+/fdroid/metadata/
+/fdroid/tmp/
+/site/
+config.yml
+*.keystore
+*.p12

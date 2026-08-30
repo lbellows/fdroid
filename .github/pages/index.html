@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>lbellows &mdash; F-Droid repository</title>
+<style>
+  :root { color-scheme: light dark; --fg:#141414; --muted:#5f5c57; --bg:#fbfaf8;
+          --card:#fff; --line:#e4e1db; --accent:#1f6f4a; }
+  @media (prefers-color-scheme: dark) {
+    :root { --fg:#e9e7e3; --muted:#a3a09a; --bg:#131313; --card:#1c1c1c;
+            --line:#2f2f2f; --accent:#6cc79a; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:2.5rem 1.25rem 4rem; background:var(--bg); color:var(--fg);
+         font:16px/1.65 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 46rem; margin: 0 auto; }
+  h1 { font-size: 1.9rem; margin: 0 0 .3rem; letter-spacing: -.02em; }
+  .sub { color: var(--muted); margin: 0 0 2.25rem; }
+  h2 { font-size: 1.05rem; margin: 2.5rem 0 .7rem; }
+  .card { background: var(--card); border: 1px solid var(--line);
+          border-radius: 10px; padding: 1rem 1.15rem; }
+  code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .9em; }
+  .dim { color: var(--muted); }
+  .url { display:block; word-break: break-all; color: var(--accent); font-weight: 600;
+         font-size: 1.02rem; }
+  .fp { display:block; word-break: break-all; color: var(--muted); font-size: .78rem;
+        margin-top: .6rem; letter-spacing: .01em; }
+  table { width:100%; border-collapse: collapse; margin-top: .4rem; }
+  th, td { text-align:left; padding:.6rem .5rem; border-bottom:1px solid var(--line);
+           vertical-align: top; font-size: .95rem; }
+  th { font-size:.78rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  ol { padding-left: 1.15rem; } li { margin:.35rem 0; }
+  footer { margin-top:3rem; color:var(--muted); font-size:.88rem;
+           border-top:1px solid var(--line); padding-top:1rem; }
+  a { color: var(--accent); }
+</style>
+<main>
+  <h1>lbellows</h1>
+  <p class="sub">An F-Droid repository for my Android apps. Built from source, signed, and served straight from GitHub &mdash; no store review in the way.</p>
+
+  <div class="card">
+    <span class="mono url">@REPO_URL@</span>
+    <span class="mono fp">Index fingerprint (SHA-256): @FINGERPRINT@</span>
+  </div>
+
+  <h2>Adding it to F-Droid</h2>
+  <ol>
+    <li>In the F-Droid client, open <em>Settings &rarr; Repositories</em>.</li>
+    <li>Tap <em>+</em> and paste the URL above.</li>
+    <li>Confirm the fingerprint matches, add it, then refresh.</li>
+  </ol>
+  <p>The apps below then install and update like anything else in F-Droid.</p>
+
+  <h2>In this repository</h2>
+  <table>
+    <thead><tr><th>App</th><th>What it does</th><th>Latest</th></tr></thead>
+    <tbody>
+@APP_ROWS@
+    </tbody>
+  </table>
+
+  <h2>Other ways to install</h2>
+  <p>
+    Each app's GitHub releases carry the same APKs, one per CPU architecture &mdash;
+    <span class="mono">arm64-v8a</span> suits any recent phone.
+    <a href="https://obtainium.imranr.dev/">Obtainium</a> can track those release
+    pages directly if you would rather not add a repository.
+  </p>
+
+  <footer>
+    APKs here are the same signed files attached to each app's GitHub releases, so
+    you can move between the two without reinstalling. The index itself is signed
+    with a separate key, which is what the fingerprint above verifies.
+    Sources: <a href="https://github.com/lbellows">github.com/lbellows</a>.
+  </footer>
+</main>
+</html>

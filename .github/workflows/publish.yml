@@ -1,0 +1,139 @@
+# Build and publish the F-Droid repository index to GitHub Pages.
+#
+# Every app listed in apps.json contributes the APKs attached to its GitHub
+# releases, plus the fastlane store listing from its source tree. Adding an app
+# is one line in apps.json -- nothing here is app-specific.
+#
+# Runs nightly, on a push to main, and on demand. An app repo can also trigger
+# it immediately after publishing a release via repository_dispatch.
+name: Publish F-Droid repo
+
+on:
+  push:
+    branches: [main]
+  repository_dispatch:
+    types: [app-released]
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: fdroid-repo
+  cancel-in-progress: false
+
+env:
+  PAGES_URL: https://lbellows.github.io/fdroid
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # fdroidserver shells out to apksigner to verify APK signatures.
+      - uses: android-actions/setup-android@v4
+
+      - name: Install fdroidserver
+        run: |
+          pipx install fdroidserver
+          fdroid --version
+
+      - name: Collect APKs and store listings
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p fdroid/repo fdroid/metadata
+          jq -c '.[]' apps.json | while read -r app; do
+            repo=$(jq -r .repo <<<"$app")
+            appid=$(jq -r .appid <<<"$app")
+            echo "::group::$repo ($appid)"
+
+            # Every release, so the repo carries history and someone on an old
+            # version still sees a path forward.
+            for tag in $(gh release list --repo "$repo" --limit 100 --json tagName -q '.[].tagName'); do
+              gh release download "$tag" --repo "$repo" --pattern '*.apk' \
+                --dir fdroid/repo --clobber || true
+            done
+
+            # fdroid reads descriptions and images from metadata/<appid>/<locale>/,
+            # which is the layout fastlane already uses.
+            src=$(mktemp -d)
+            git clone --depth 1 "https://github.com/$repo.git" "$src/app" --quiet
+            if [ -d "$src/app/fastlane/metadata/android" ]; then
+              for loc in "$src/app"/fastlane/metadata/android/*/; do
+                dest="fdroid/metadata/$appid/$(basename "$loc")"
+                mkdir -p "$dest"
+                cp -r "$loc". "$dest"/
+              done
+            else
+              echo "::warning::$repo has no fastlane metadata; listing will be sparse"
+            fi
+            rm -rf "$src"
+            echo "::endgroup::"
+          done
+
+          ls -la fdroid/repo
+          test -n "$(ls fdroid/repo/*.apk 2>/dev/null)" || { echo "::error::no APKs found"; exit 1; }
+
+      - name: Build and sign the index
+        env:
+          KEYSTORE_BASE64: ${{ secrets.FDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.FDROID_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$KEYSTORE_BASE64" || { echo "::error::FDROID_KEYSTORE_BASE64 is not set"; exit 1; }
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/ks.p12"
+          cd fdroid
+          umask 077
+          cat > config.yml <<CONFIG
+          repo_url: $PAGES_URL/repo
+          repo_name: lbellows
+          repo_description: >-
+            Android apps by lbellows, built and signed from source. No analytics,
+            no advertising, no trackers.
+          archive_older: 0
+          keystore: $RUNNER_TEMP/ks.p12
+          repo_keyalias: fdroidrepo
+          keystorepass: $KEYSTORE_PASSWORD
+          keypass: $KEYSTORE_PASSWORD
+          CONFIG
+          fdroid update --create-metadata --pretty --delete-unknown
+          rm -f config.yml
+          ls repo/
+
+      - name: Assemble the site
+        env:
+          KEYSTORE_BASE64: ${{ secrets.FDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.FDROID_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/ks.p12"
+          FP=$(keytool -list -v -keystore "$RUNNER_TEMP/ks.p12" -storetype PKCS12 \
+                 -alias fdroidrepo -storepass "$KEYSTORE_PASSWORD" 2>/dev/null \
+               | grep -m1 'SHA256:' | awk '{print $2}' | tr -d ':')
+          test -n "$FP" || { echo "::error::could not read the index fingerprint"; exit 1; }
+          echo "index fingerprint: $FP"
+          mkdir -p site
+          cp -r fdroid/repo site/repo
+          python3 scripts/build_site.py "$PAGES_URL/repo" "$FP"
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
