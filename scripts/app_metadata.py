@@ -38,6 +38,10 @@ def main() -> int:
         src = yaml.safe_load(fh) or {}
 
     out = {k: src[k] for k in KEEP if k in src}
+    # AutoName is what fdroiddata's updater fills in from the APK; fdroid update
+    # ignores it and reads Name, so an app with only AutoName publishes nameless.
+    if "Name" not in out and "AutoName" in src:
+        out["Name"] = src["AutoName"]
     if not out.get("SourceCode"):
         print(f"warning: {appid} recipe has no SourceCode", file=sys.stderr)
     if not out.get("License"):

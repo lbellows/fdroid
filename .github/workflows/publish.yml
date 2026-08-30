@@ -112,15 +112,23 @@ jobs:
           # in apps.json is the first release worth publishing.
           aapt2=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)aapt2
           for apk in fdroid/repo/*.apk; do
-            line=$("$aapt2" dump badging "$apk" | head -1)
-            pkg=$(sed -n "s/.*name='\([^']*\)'.*/\1/p" <<<"$line")
-            code=$(sed -n "s/.*versionCode='\([0-9]*\)'.*/\1/p" <<<"$line")
+            # Anchor on the badging header. Matching name=' unanchored finds
+            # compileSdkVersionCodename instead, and versionCode=' finds
+            # platformBuildVersionCode -- both silently, leaving nothing pruned.
+            line=$("$aapt2" dump badging "$apk" | grep -m1 '^package: ')
+            pkg=$(sed -n "s/^package: name='\([^']*\)'.*/\1/p" <<<"$line")
+            code=$(sed -n "s/^package: name='[^']*' versionCode='\([0-9]*\)'.*/\1/p" <<<"$line")
+            if [ -z "$pkg" ] || [ -z "$code" ]; then
+              echo "::error::could not read package/versionCode from $apk"; exit 1
+            fi
             min=$(jq -r --arg p "$pkg" '.[] | select(.appid==$p) | .min_versioncode // 0' apps.json)
             min=${min:-0}
-            if [ -n "$code" ] && [ "$code" -lt "$min" ]; then
+            if [ "$code" -lt "$min" ]; then
               printf 'dropping %s (%s code %s < %s, %s MB)\n' \
                 "$(basename "$apk")" "$pkg" "$code" "$min" "$(( $(stat -c%s "$apk") / 1000000 ))"
               rm -f "$apk"
+            else
+              printf 'keeping  %s (%s code %s)\n' "$(basename "$apk")" "$pkg" "$code"
             fi
           done
           ls -la fdroid/repo
