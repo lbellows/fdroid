@@ -29,6 +29,7 @@
   th, td { text-align:left; padding:.6rem .5rem; border-bottom:1px solid var(--line);
            vertical-align: top; font-size: .95rem; }
   th { font-size:.78rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .nowrap { white-space: nowrap; }
   ol { padding-left: 1.15rem; } li { margin:.35rem 0; }
   footer { margin-top:3rem; color:var(--muted); font-size:.88rem;
            border-top:1px solid var(--line); padding-top:1rem; }
@@ -39,15 +40,17 @@
   <p class="sub">An F-Droid repository for my Android apps. Built from source, signed, and served straight from GitHub &mdash; no store review in the way.</p>
 
   <div class="card">
-    <span class="mono url">@REPO_URL@</span>
-    <span class="mono fp">Index fingerprint (SHA-256): @FINGERPRINT@</span>
+    <span class="mono url">@REPO_URL@?fingerprint=@FINGERPRINT@</span>
+    <span class="mono fp">Pasting the whole line pins the repository to this key, so the
+      client verifies it for you. The plain URL <span class="nowrap">@REPO_URL@</span>
+      works too &mdash; then check the fingerprint by hand.</span>
   </div>
 
   <h2>Adding it to F-Droid</h2>
   <ol>
     <li>In the F-Droid client, open <em>Settings &rarr; Repositories</em>.</li>
     <li>Tap <em>+</em> and paste the URL above.</li>
-    <li>Confirm the fingerprint matches, add it, then refresh.</li>
+    <li>Add it and refresh. If you pasted the plain URL, confirm the fingerprint first.</li>
   </ol>
   <p>The apps below then install and update like anything else in F-Droid.</p>
 

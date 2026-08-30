@@ -2,11 +2,13 @@
 
 A self-hosted [F-Droid](https://f-droid.org) repository, published to GitHub Pages:
 
-    https://lbellows.github.io/fdroid/repo
+    https://lbellows.github.io/fdroid/repo?fingerprint=<index fingerprint>
 
-Add that URL under *Settings → Repositories* in the F-Droid client. The landing
-page at <https://lbellows.github.io/fdroid/> shows the index fingerprint to check
-against, and lists what is currently published.
+Add that under *Settings → Repositories* in the F-Droid client. Including
+`?fingerprint=` pins the repository to the signing key, so the client verifies it
+instead of the user eyeballing a hex string; the plain URL works too. The landing
+page at <https://lbellows.github.io/fdroid/> always shows the current
+copy-pasteable form and lists what is published.
 
 ## How it works
 
