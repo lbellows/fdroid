@@ -3,12 +3,14 @@
     "repo": "lbellows/bracket-up",
     "appid": "com.bracketup.app",
     "recipe": "fdroid/com.bracketup.app.yml",
-    "min_versioncode": 21
+    "min_versioncode": 21,
+    "signing_key": "f3978ab0a503bacb8b584daf9ee97b4e0525758523d1a232044237a35e97b564"
   },
   {
     "repo": "lbellows/kids-doodle",
     "appid": "com.kidsdoodle.app",
     "recipe": "fdroid/com.kidsdoodle.app.yml",
-    "min_versioncode": 31
+    "min_versioncode": 31,
+    "signing_key": "a673f800d5c5d0eb63cf40cfa66253d0530bcf8a30fc866406c88cdd5e27ef31"
   }
 ]

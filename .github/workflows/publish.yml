@@ -90,7 +90,8 @@ jobs:
             # recipe so they cannot drift from what it submits upstream.
             recipe=$(jq -r '.recipe // empty' <<<"$app")
             if [ -n "$recipe" ] && [ -f "$src/app/$recipe" ]; then
-              python3 scripts/app_metadata.py "$src/app/$recipe" "$appid" fdroid/metadata
+              python3 scripts/app_metadata.py "$src/app/$recipe" "$appid" fdroid/metadata \
+                "$(jq -r '.signing_key // empty' <<<"$app")"
             else
               echo "::warning::$repo has no recipe at '$recipe'; app will publish as licence Unknown"
             fi
@@ -158,6 +159,9 @@ jobs:
           fdroid update --create-metadata --pretty --delete-unknown
           rm -f config.yml
           ls repo/
+
+      - name: Verify every app made it into the index
+        run: python3 scripts/verify_index.py
 
       - name: Assemble the site
         env:

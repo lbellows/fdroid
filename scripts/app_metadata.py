@@ -12,8 +12,16 @@ lift the app-level fields from there and drop everything that only describes how
 to build from source. One source of truth, and it cannot drift from the
 fdroiddata submission.
 
-    app_metadata.py <recipe.yml> <appid> <out-dir>
+AllowedAPKSigningKeys is deliberately NOT taken from the recipe. Here it is a
+useful guard -- fdroid update drops any APK whose signer is not on the list. In
+fdroiddata it would be actively harmful: F-Droid builds from source and signs
+with its own key, so pinning our release cert there would silently exclude
+F-Droid's own build and the app would vanish from the main index with no error.
+It comes from apps.json, which never reaches the upstream submission.
+
+    app_metadata.py <recipe.yml> <appid> <out-dir> [signing-key-sha256]
 """
+import re
 import sys
 
 import yaml
@@ -21,7 +29,7 @@ import yaml
 # Everything F-Droid shows about an app, as opposed to how it is built.
 KEEP = (
     "AntiFeatures", "AuthorEmail", "AuthorName", "AuthorWebSite",
-    "AllowedAPKSigningKeys", "AutoName", "Categories", "Changelog",
+    "AutoName", "Categories", "Changelog",
     "CurrentVersion", "CurrentVersionCode", "Description", "Donate",
     "IssueTracker", "License", "Liberapay", "Name", "OpenCollective",
     "SourceCode", "Summary", "Translation", "WebSite",
@@ -29,10 +37,12 @@ KEEP = (
 
 
 def main() -> int:
-    if len(sys.argv) != 4:
-        print(f"usage: {sys.argv[0]} <recipe.yml> <appid> <out-dir>", file=sys.stderr)
+    if len(sys.argv) not in (4, 5):
+        print(f"usage: {sys.argv[0]} <recipe.yml> <appid> <out-dir> [signing-key]",
+              file=sys.stderr)
         return 2
-    recipe, appid, outdir = sys.argv[1:]
+    recipe, appid, outdir = sys.argv[1:4]
+    signing_key = sys.argv[4] if len(sys.argv) == 5 else ""
 
     with open(recipe) as fh:
         src = yaml.safe_load(fh) or {}
@@ -46,6 +56,14 @@ def main() -> int:
         print(f"warning: {appid} recipe has no SourceCode", file=sys.stderr)
     if not out.get("License"):
         print(f"warning: {appid} recipe has no License", file=sys.stderr)
+
+    out.pop("AllowedAPKSigningKeys", None)
+    if signing_key:
+        if not re.fullmatch(r"[0-9a-f]{64}", signing_key):
+            print(f"error: {appid} signing_key must be lowercase hex SHA-256",
+                  file=sys.stderr)
+            return 1
+        out["AllowedAPKSigningKeys"] = [signing_key]
 
     path = f"{outdir}/{appid}.yml"
     with open(path, "w") as fh:
