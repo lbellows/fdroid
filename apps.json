@@ -1,4 +1,14 @@
 [
-  { "repo": "lbellows/bracket-up",  "appid": "com.bracketup.app" },
-  { "repo": "lbellows/kids-doodle", "appid": "com.kidsdoodle.app" }
+  {
+    "repo": "lbellows/bracket-up",
+    "appid": "com.bracketup.app",
+    "recipe": "fdroid/com.bracketup.app.yml",
+    "min_versioncode": 21
+  },
+  {
+    "repo": "lbellows/kids-doodle",
+    "appid": "com.kidsdoodle.app",
+    "recipe": "fdroid/com.kidsdoodle.app.yml",
+    "min_versioncode": 31
+  }
 ]

@@ -48,6 +48,8 @@ jobs:
 
       - name: Install fdroidserver
         run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-yaml
           pipx install fdroidserver
           fdroid --version
 
@@ -82,12 +84,46 @@ jobs:
             else
               echo "::warning::$repo has no fastlane metadata; listing will be sparse"
             fi
+
+            # License, Categories and SourceCode come from metadata/<appid>.yml,
+            # not from the fastlane tree. Lift them from the app's own fdroiddata
+            # recipe so they cannot drift from what it submits upstream.
+            recipe=$(jq -r '.recipe // empty' <<<"$app")
+            if [ -n "$recipe" ] && [ -f "$src/app/$recipe" ]; then
+              python3 scripts/app_metadata.py "$src/app/$recipe" "$appid" fdroid/metadata
+            else
+              echo "::warning::$repo has no recipe at '$recipe'; app will publish as licence Unknown"
+            fi
+
             rm -rf "$src"
             echo "::endgroup::"
           done
 
           ls -la fdroid/repo
           test -n "$(ls fdroid/repo/*.apk 2>/dev/null)" || { echo "::error::no APKs found"; exit 1; }
+
+      - name: Drop superseded APKs
+        run: |
+          set -euo pipefail
+          # Releases predating the per-ABI split shipped one universal APK of
+          # ~95 MB carrying four architectures. Clients rank them below the
+          # current builds so nothing breaks, but serving them burns Pages
+          # bandwidth and contradicts the listing beside them. min_versioncode
+          # in apps.json is the first release worth publishing.
+          aapt2=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)aapt2
+          for apk in fdroid/repo/*.apk; do
+            line=$("$aapt2" dump badging "$apk" | head -1)
+            pkg=$(sed -n "s/.*name='\([^']*\)'.*/\1/p" <<<"$line")
+            code=$(sed -n "s/.*versionCode='\([0-9]*\)'.*/\1/p" <<<"$line")
+            min=$(jq -r --arg p "$pkg" '.[] | select(.appid==$p) | .min_versioncode // 0' apps.json)
+            min=${min:-0}
+            if [ -n "$code" ] && [ "$code" -lt "$min" ]; then
+              printf 'dropping %s (%s code %s < %s, %s MB)\n' \
+                "$(basename "$apk")" "$pkg" "$code" "$min" "$(( $(stat -c%s "$apk") / 1000000 ))"
+              rm -f "$apk"
+            fi
+          done
+          ls -la fdroid/repo
 
       - name: Build and sign the index
         env:
