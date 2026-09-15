@@ -184,9 +184,9 @@ jobs:
           cp -r fdroid/repo site/repo
           python3 scripts/build_site.py "$PAGES_URL/repo" "$FP"
 
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
       - id: deploy
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
