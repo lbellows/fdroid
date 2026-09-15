@@ -43,8 +43,13 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # fdroidserver shells out to apksigner to verify APK signatures.
+      # fdroidserver shells out to apksigner, and the badging step to aapt2;
+      # both live in build-tools. Name the packages explicitly -- the action's
+      # default set includes the obsolete "tools", which Google has removed
+      # from the SDK repository, so the default install now fails outright.
       - uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools build-tools;37.0.0'
 
       - name: Install fdroidserver
         run: |
